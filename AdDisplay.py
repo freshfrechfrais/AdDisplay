@@ -26,7 +26,7 @@ class Scheme:
         '''
         np.random.seed(seed)
         self.x = np.random.rand(self.K,self.d)*0.1+0.45#random features
-        if pooled:
+        if pooled:#generate data in a pooled way
             beta_bar = np.random.normal(-0.92,0.01,self.d)
             tmp = np.random.rand(self.d,self.d)*0.05
             Sigma = np.dot(tmp,tmp.T)
@@ -41,7 +41,7 @@ class Scheme:
 
     def simulate(self,seed,scheme = 'TS_HGLM'):
         output = open('result/'+scheme+'_seed_'+str(seed)+'.txt','w')
-        if scheme == 'TS_HGLM':
+        if scheme == 'TS_HGLM':#Thompson sampling with a hierarchical generalized linear model (partial pooling)
             np.random.seed(seed)
             prior_beta_bar = np.random.normal(-1,1,self.d)
             tmp = np.random.rand(Scheme.d,Scheme.d)
@@ -53,9 +53,9 @@ class Scheme:
             num_period = self.simulation_time/self.period_length
             budget_for_each_period = self.Budget/num_period
             budget_for_each_website = budget_for_each_period/self.J
-            conversion = np.empty([num_period])
+            conversion = np.empty([num_period])#used to store conversion in each period
 
-            X = np.empty([self.Budget,self.d])
+            X = np.empty([self.Budget,self.d])#X and y are used to store training data
             y = np.empty([self.Budget])
 
             for period in range(num_period):
@@ -67,13 +67,13 @@ class Scheme:
                         beta_j = np.random.multivariate_normal(prior_beta_bar,prior_Sigma)#sample a bete_j
                         to_select = 0
                         max = 1/(1+np.exp(-np.dot(self.x[0],beta_j.T)))
-                        for i in range(1,self.K):
+                        for i in range(1,self.K):#choose the best arm under sampled beta_j
                             beta_j = np.random.multivariate_normal(prior_beta_bar,prior_Sigma)#sample a bete_j
                             new_value = 1/(1+np.exp(-np.dot(self.x[i],beta_j)))
                             if  new_value > max:
                                 to_select, max = i, new_value
                         prob = self.mu_true[j,to_select]
-                        X[period*budget_for_each_period + j*budget_for_each_website+b] = self.x[to_select]
+                        X[period*budget_for_each_period + j*budget_for_each_website+b] = self.x[to_select]#all training data is recorded
                         if np.random.random()<prob:
                             y[period*budget_for_each_period + j*budget_for_each_website+b] = 1
                             counter += 1
@@ -84,7 +84,7 @@ class Scheme:
                 print>>output, prior_beta_bar,counter,np.average(conversion[0:period+1])
                 output.flush()
             return np.average(conversion)
-        elif scheme == 'Balanced':
+        elif scheme == 'Balanced':#balanced allocation
             num_period = self.simulation_time/self.period_length
             budget_for_each_period = self.Budget/num_period
             budget_for_each_website = budget_for_each_period/self.J
@@ -104,7 +104,7 @@ class Scheme:
                 print>>output, counter,np.average(conversion[0:period+1])
             return np.average(conversion)
 
-        elif scheme == 'Perfect':
+        elif scheme == 'Perfect':#scheme with perfect information
             best_arm = np.argmax(self.mu_true,axis = 1)
             num_period = self.simulation_time/self.period_length
             budget_for_each_period = self.Budget/num_period
@@ -128,7 +128,7 @@ class Scheme:
             budget_for_each_arm = budget_for_each_website/self.K
 
             conversion = np.empty([num_period])
-            tau = num_period/5#length of exploration
+            tau = num_period/5#length of exploration periods
 
             accumulated_conversion = np.empty([self.J,self.K])
             for period in range(tau):
@@ -194,8 +194,8 @@ class Scheme:
                 print>>output, counter,np.average(conversion[0:period+1])
             return np.average(conversion)
         elif scheme == 'Greedy_Pooled':
-            conversion_numerator = np.zeros(self.K)
-            conversion_denominator = np.zeros(self.K)
+            conversion_numerator = np.zeros(self.K)# number of conversions, the same in the following code
+            conversion_denominator = np.zeros(self.K)#number of impressions, the same in the following code
 
             num_period = self.simulation_time/self.period_length
             budget_for_each_period = self.Budget/num_period
@@ -207,6 +207,9 @@ class Scheme:
                 #display ad
                 for j in range(self.J):#for each website
                     for ii in range(budget_for_each_website):
+                        # 0.00001 is added in denominator to avoid the problem of deviding by zero
+                        # 0.00001 is also added in numerator such that the original reward is 1, which guarantees that every arm will be explored
+                        # the same in the following code
                         best_arm = np.argmax((conversion_numerator+0.00001)/(conversion_denominator+0.00001))
                         prob = self.mu_true[j,best_arm]
                         if np.random.random()<prob:
@@ -317,7 +320,7 @@ class Scheme:
                 #display ad
                 for j in range(self.J):#for each website
                     for ii in range(budget_for_each_website):
-                        best_arm = np.argmax((conversion_numerator+0.00001)/(conversion_denominator+0.00001)+np.sqrt(2*np.log(period*budget_for_each_period)/(conversion_numerator+1)))
+                        best_arm = np.argmax((conversion_numerator+0.00001)/(conversion_denominator+0.00001)+np.sqrt(2*np.log(period*budget_for_each_period)/(conversion_numerator+1)))# add 1 to conversion_numerator to avoid the problem of deviding by zeros
                         prob = self.mu_true[j,best_arm]
                         if np.random.random()<prob:
                             conversion_numerator[best_arm] +=1
@@ -441,10 +444,10 @@ class Scheme:
                 conversion[period] = counter
                 print>>output, counter,np.average(conversion[0:period+1])
             return np.average(conversion)
-        elif scheme == 'Gittins_Pooled':#TO DO
+        elif scheme == 'Gittins_Pooled':#TODO
             return 0
             pass
-        elif scheme == 'Gittins_Unpooled':#TO DO
+        elif scheme == 'Gittins_Unpooled':#TODO
             return 0
             pass
 
