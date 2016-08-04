@@ -1,0 +1,13 @@
+Balanced 152.755
+Perfect 180.04
+Test_rollout_Unpooled 165.14
+Test_rollout_Pooled 176.115
+Greedy_Pooled 155.36
+Greedy_Unpooled 155.775
+Epsilon_Greedy_Pooled_10 168.295
+Epsilon_Greedy_Unpooled_10 165.435
+UCB1_Pooled 153.64
+UCB1_Unpooled 152.245
+UCB1_Tuned_Pooled 154.205
+UCB1_Tuned_Unpooled 152.605
+TS_HGLM 163.03
